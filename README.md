@@ -1,6 +1,7 @@
 # ItsMingo
 
 This bot allowed you to set up reaction roles to (un)assign roles.
+
 In addition, a bot trap is possible by using the same command (use the bot role as bait) and then add the :skull: emoji!
 
 ## Setup
