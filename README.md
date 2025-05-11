@@ -6,6 +6,8 @@ In addition, a bot trap is possible by using the same command (use the bot role 
 
 Furthermore, it logs when a user reacts to an emoji for the role (un)assignment, as well as logging when a user joined & left the server, and also when someone triggered the bot trap.
 
+It has extra functionality to create Temp Voice Channels on demand by joining a specified voice channel
+
 ## Requirements Installation
 
 To install the necessary Python packages, you need Python 3.12 & execute the following pip command for it:
