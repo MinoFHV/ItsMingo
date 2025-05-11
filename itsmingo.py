@@ -208,7 +208,7 @@ async def on_member_remove(member: discord.Member):
 # ─────────── Load Extensions and Run ───────────
 async def main():
     async with bot:
-        await bot.load_extension("activities")  # Load activities.py from root
+        await bot.load_extension("activities")
         await bot.start(DISCORD_BOT_TOKEN)
 
 import asyncio

@@ -21,6 +21,8 @@ You need to set up an .env file with the following content:
 ```
 DISCORD_BOT_TOKEN=""
 GUILD_ID=""
+CATEGORY_NAME=""
+VC_NAME=""
 
 FILENAME_REACTION_ROLES=""
 FILENAME_LOG_CONFIG=""
