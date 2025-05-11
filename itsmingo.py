@@ -1,10 +1,11 @@
 # Bot written by MinoFloof
 # Code Refactor by ChatGPT
+# VC functionality and refactor by MarzHater
 
 import discord
 import os
 import time
-
+from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 from enum import Enum
@@ -24,9 +25,11 @@ intents.message_content = True
 intents.messages = True
 intents.guilds = True
 intents.members = True
+intents.voice_states = True
 
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+# ─────────── Bot Setup ───────────
+bot = commands.Bot(command_prefix="!", intents=intents)
+tree = bot.tree
 server_guild = discord.Object(id=GUILD_ID)
 
 # ─────────── Data ───────────
@@ -38,18 +41,15 @@ TRAP_EMOJI = "💀"
 COMMAND_ROOT = "mingo"
 mingo_group = app_commands.Group(name=COMMAND_ROOT, description="Utility Commands")
 
-
 # ─────────── Enums ───────────
 class ReactionType(Enum):
     ADD = "add"
     REMOVE = "remove"
 
-
 # ─────────── Utility Functions ───────────
 def get_log_channel():
     log_channel_id = log_config.get("log_channel_id")
-    return client.get_channel(log_channel_id) if log_channel_id else None
-
+    return bot.get_channel(log_channel_id) if log_channel_id else None
 
 async def log_event(content: str):
     log_channel = get_log_channel()
@@ -57,12 +57,10 @@ async def log_event(content: str):
         timestamp = int(time.time())
         await log_channel.send(f"<t:{timestamp}:f> - {content}")
 
-
 def build_role_emoji_pairs(*args):
     return [
         (role, emoji) for role, emoji in zip(args[::2], args[1::2]) if role and emoji
     ]
-
 
 # ─────────── Commands ───────────
 @mingo_group.command(
@@ -83,7 +81,6 @@ async def set_log_channel(
     await interaction.response.send_message(
         f"✅ Log channel set to {channel.mention}", ephemeral=True
     )
-
 
 @mingo_group.command(
     name="create_reaction", description="Create a message with Reaction-Role linkage"
@@ -146,7 +143,6 @@ async def create_reaction_message(
         "✅ Message sent with role reactions.", ephemeral=True
     )
 
-
 # ─────────── Reaction Logic ───────────
 async def handle_reaction(
     payload: discord.RawReactionActionEvent, reaction_type: ReactionType
@@ -162,7 +158,7 @@ async def handle_reaction(
     if not role_id:
         return
 
-    guild = client.get_guild(payload.guild_id)
+    guild = bot.get_guild(payload.guild_id)
     member = guild.get_member(payload.user_id)
     role = guild.get_role(role_id)
 
@@ -186,34 +182,34 @@ async def handle_reaction(
         await member.remove_roles(role, reason="Reaction role removed.")
         await log_event(f"❌ **'{str(member)}'** removed the role **'{role.name}'**.")
 
-
 # ─────────── Events ───────────
-@client.event
+@bot.event
 async def on_ready():
-    tree.add_command(mingo_group, guild=server_guild)
     await tree.sync(guild=server_guild)
-    print("✅ Bot is ready and commands are synced.")
+    tree.add_command(mingo_group, guild=server_guild)
+    print(f"✅ Logged in as {bot.user} and commands are synced.")
 
-
-@client.event
+@bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await handle_reaction(payload, ReactionType.ADD)
 
-
-@client.event
+@bot.event
 async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     await handle_reaction(payload, ReactionType.REMOVE)
 
-
-@client.event
+@bot.event
 async def on_member_join(member: discord.Member):
     await log_event(f"📥 **'{str(member)}'** joined the server.")
 
-
-@client.event
+@bot.event
 async def on_member_remove(member: discord.Member):
     await log_event(f"📤 **'{str(member)}'** left the server.")
 
+# ─────────── Load Extensions and Run ───────────
+async def main():
+    async with bot:
+        await bot.load_extension("activities")  # Load activities.py from root
+        await bot.start(DISCORD_BOT_TOKEN)
 
-# ─────────── Run the Bot ───────────
-client.run(DISCORD_BOT_TOKEN)
+import asyncio
+asyncio.run(main())
