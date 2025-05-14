@@ -1,4 +1,5 @@
 .env
+.venv
 __pycache__
 reaction_roles.json
 log_config.json
