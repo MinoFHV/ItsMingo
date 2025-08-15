@@ -207,6 +207,138 @@ async def create_reaction_message(
     )
 
 
+@mingo_group.command(
+    name="edit_reaction",
+    description="Edit an existing reaction-role message by message ID",
+)
+async def edit_reaction_message(
+    interaction: discord.Interaction,
+    message_id: str,
+    channel: discord.TextChannel,
+    role1: discord.Role,
+    emoji1: str,
+    role2: discord.Role | None = None,
+    emoji2: str | None = None,
+    role3: discord.Role | None = None,
+    emoji3: str | None = None,
+    role4: discord.Role | None = None,
+    emoji4: str | None = None,
+    role5: discord.Role | None = None,
+    emoji5: str | None = None,
+    role6: discord.Role | None = None,
+    emoji6: str | None = None,
+    role7: discord.Role | None = None,
+    emoji7: str | None = None,
+    role8: discord.Role | None = None,
+    emoji8: str | None = None,
+    role9: discord.Role | None = None,
+    emoji9: str | None = None,
+    role10: discord.Role | None = None,
+    emoji10: str | None = None,
+    role11: discord.Role | None = None,
+    emoji11: str | None = None,
+    role12: discord.Role | None = None,
+    emoji12: str | None = None,
+):
+
+    # User Permission Check
+    if not interaction.user.guild_permissions.manage_roles:
+        await interaction.response.send_message(
+            "❌ You don't have permission to use this command.", ephemeral=True
+        )
+        return
+
+    # Bot Permission Check
+    me = interaction.guild.me
+    if not me.guild_permissions.manage_roles or not me.guild_permissions.add_reactions:
+        await interaction.response.send_message(
+            "❌ I need 'Manage Roles' and 'Add Reactions' permissions to run this command.",
+            ephemeral=True,
+        )
+        return
+
+    role_emoji_pairs = build_role_emoji_pairs(
+        role1,
+        emoji1,
+        role2,
+        emoji2,
+        role3,
+        emoji3,
+        role4,
+        emoji4,
+        role5,
+        emoji5,
+        role6,
+        emoji6,
+        role7,
+        emoji7,
+        role8,
+        emoji8,
+        role9,
+        emoji9,
+        role10,
+        emoji10,
+        role11,
+        emoji11,
+        role12,
+        emoji12,
+    )
+
+    if not role_emoji_pairs:
+        await interaction.response.send_message(
+            "❌ You must provide at least one valid role/emoji pair.", ephemeral=True
+        )
+        return
+
+    try:
+        message = await channel.fetch_message(int(message_id))
+    except discord.NotFound:
+        await interaction.response.send_message(
+            "❌ Message not found. Make sure the ID and channel are correct.",
+            ephemeral=True,
+        )
+        return
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "❌ I don't have permission to view that channel/message.", ephemeral=True
+        )
+        return
+
+    role_info_block = "\n\n" + "\n".join(
+        f"{emoji}: `{role.name}`" for role, emoji in role_emoji_pairs
+    )
+    await message.edit(content=role_info_block)
+
+    try:
+        await message.clear_reactions()
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "❌ I couldn't clear the old reactions (missing permissions).",
+            ephemeral=True,
+        )
+        return
+
+    message_map = {}
+    for role, emoji in role_emoji_pairs:
+        try:
+            await message.add_reaction(emoji)
+            message_map[emoji] = role.id
+        except discord.HTTPException:
+            await interaction.response.send_message(
+                f"❌ Failed to add emoji `{emoji}` for role `{role.name}`.",
+                ephemeral=True,
+            )
+            return
+
+    reaction_role_messages[str(message.id)] = message_map
+    save_json_data(FILENAME_REACTION_ROLES, reaction_role_messages)
+
+    await interaction.response.send_message(
+        f"✅ Reaction-role message `{message_id}` updated successfully.",
+        ephemeral=True,
+    )
+
+
 # ─────────── Reaction Logic ───────────
 async def handle_reaction(
     payload: discord.RawReactionActionEvent, reaction_type: ReactionType
@@ -250,9 +382,15 @@ async def handle_reaction(
 # ─────────── Events ───────────
 @bot.event
 async def on_ready():
-    await tree.sync(guild=server_guild)
-    tree.add_command(mingo_group, guild=server_guild)
-    print(f"✅ Logged in as {bot.user} and commands are synced.")
+    if not getattr(bot, "already_synced", False):
+        tree.add_command(mingo_group, guild=server_guild)
+        await tree.sync(guild=server_guild)
+        bot.already_synced = True
+        print(
+            f"✅ Logged in as {bot.user} and commands are synced for guild {GUILD_ID}."
+        )
+    else:
+        print(f"✅ Logged in as {bot.user} (commands already synced).")
 
 
 @bot.event
