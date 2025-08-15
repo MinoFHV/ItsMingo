@@ -247,6 +247,7 @@ async def edit_reaction_message(
             "❌ You don't have permission to use this command.", ephemeral=True
         )
         return
+
     # Bot Permission Check
     me = interaction.guild.me
     if not me.guild_permissions.manage_roles or not me.guild_permissions.add_reactions:
@@ -381,8 +382,8 @@ async def handle_reaction(
 # ─────────── Events ───────────
 @bot.event
 async def on_ready():
-    await tree.sync(guild=server_guild)
     tree.add_command(mingo_group, guild=server_guild)
+    await tree.sync(guild=server_guild)
     print(f"✅ Logged in as {bot.user} and commands are synced.")
 
 
