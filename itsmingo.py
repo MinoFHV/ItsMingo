@@ -5,7 +5,6 @@
 import discord
 import os
 import time
-from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 from enum import Enum
@@ -28,8 +27,8 @@ intents.members = True
 intents.voice_states = True
 
 # ─────────── Bot Setup ───────────
-bot = commands.Bot(command_prefix="!", intents=intents)
-tree = bot.tree
+bot = discord.Client(intents=intents)
+tree = app_commands.CommandTree(bot)
 server_guild = discord.Object(id=GUILD_ID)
 
 # ─────────── Data ───────────
@@ -41,15 +40,18 @@ TRAP_EMOJI = "💀"
 COMMAND_ROOT = "mingo"
 mingo_group = app_commands.Group(name=COMMAND_ROOT, description="Utility Commands")
 
+
 # ─────────── Enums ───────────
 class ReactionType(Enum):
     ADD = "add"
     REMOVE = "remove"
 
+
 # ─────────── Utility Functions ───────────
 def get_log_channel():
     log_channel_id = log_config.get("log_channel_id")
     return bot.get_channel(log_channel_id) if log_channel_id else None
+
 
 async def log_event(content: str):
     log_channel = get_log_channel()
@@ -57,10 +59,12 @@ async def log_event(content: str):
         timestamp = int(time.time())
         await log_channel.send(f"<t:{timestamp}:f> - {content}")
 
+
 def build_role_emoji_pairs(*args):
     return [
         (role, emoji) for role, emoji in zip(args[::2], args[1::2]) if role and emoji
     ]
+
 
 # ─────────── Commands ───────────
 @mingo_group.command(
@@ -82,6 +86,7 @@ async def set_log_channel(
         f"✅ Log channel set to {channel.mention}", ephemeral=True
     )
 
+
 @mingo_group.command(
     name="create_reaction", description="Create a message with Reaction-Role linkage"
 )
@@ -90,29 +95,80 @@ async def create_reaction_message(
     channelmsg: str,
     role1: discord.Role,
     emoji1: str,
-    role2: discord.Role = None,
-    emoji2: str = None,
-    role3: discord.Role = None,
-    emoji3: str = None,
-    role4: discord.Role = None,
-    emoji4: str = None,
-    role5: discord.Role = None,
-    emoji5: str = None,
+    role2: discord.Role | None = None,
+    emoji2: str | None = None,
+    role3: discord.Role | None = None,
+    emoji3: str | None = None,
+    role4: discord.Role | None = None,
+    emoji4: str | None = None,
+    role5: discord.Role | None = None,
+    emoji5: str | None = None,
+    role6: discord.Role | None = None,
+    emoji6: str | None = None,
+    role7: discord.Role | None = None,
+    emoji7: str | None = None,
+    role8: discord.Role | None = None,
+    emoji8: str | None = None,
+    role9: discord.Role | None = None,
+    emoji9: str | None = None,
+    role10: discord.Role | None = None,
+    emoji10: str | None = None,
 ):
+
+    # Avoid application 3-second-timeout
+    await interaction.response.defer(ephemeral=True)
+
+    # User Permission Check
     if not interaction.user.guild_permissions.manage_roles:
-        await interaction.response.send_message(
-            "❌ You don't have permission to use this command.", ephemeral=True
+        await interaction.followup.send(
+            "❌ You don't have permission to use this command.",
+            ephemeral=True,
+        )
+        return
+
+    # Bot Permission Check
+    me = interaction.guild.me
+    if not me.guild_permissions.manage_roles or not me.guild_permissions.add_reactions:
+        await interaction.followup.send(
+            "❌ I need 'Manage Roles' and 'Add Reactions' permissions to run this command.",
+            ephemeral=True,
         )
         return
 
     role_emoji_pairs = build_role_emoji_pairs(
-        role1, emoji1, role2, emoji2, role3, emoji3, role4, emoji4, role5, emoji5
+        role1,
+        emoji1,
+        role2,
+        emoji2,
+        role3,
+        emoji3,
+        role4,
+        emoji4,
+        role5,
+        emoji5,
+        role6,
+        emoji6,
+        role7,
+        emoji7,
+        role8,
+        emoji8,
+        role9,
+        emoji9,
+        role10,
+        emoji10,
     )
+
+    if not role_emoji_pairs:
+        await interaction.followup.send(
+            "❌ You must provide at least one valid role/emoji pair.",
+            ephemeral=True,
+        )
+        return
 
     bot_top_role = interaction.guild.me.top_role
     for role, _ in role_emoji_pairs:
         if bot_top_role < role:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ I cannot assign the role '{role.name}' because it's above my highest role.",
                 ephemeral=True,
             )
@@ -130,6 +186,11 @@ async def create_reaction_message(
             await message.add_reaction(emoji)
             message_map[emoji] = role.id
         except discord.HTTPException:
+            if message:
+                try:
+                    await message.delete()
+                except discord.HTTPException:
+                    pass
             await interaction.followup.send(
                 f"❌ Failed to add emoji `{emoji}` for role `{role.name}`.",
                 ephemeral=True,
@@ -139,9 +200,158 @@ async def create_reaction_message(
     reaction_role_messages[str(message.id)] = message_map
     save_json_data(FILENAME_REACTION_ROLES, reaction_role_messages)
 
-    await interaction.response.send_message(
-        "✅ Message sent with role reactions.", ephemeral=True
+    await interaction.followup.send(
+        "✅ Message sent with role reactions.",
+        ephemeral=True,
     )
+
+
+@mingo_group.command(
+    name="edit_reaction",
+    description="Edit an existing reaction-role message in this channel",
+)
+async def edit_reaction_message(
+    interaction: discord.Interaction,
+    message_id: str,
+    channelmsg: str,
+    role1: discord.Role,
+    emoji1: str,
+    role2: discord.Role | None = None,
+    emoji2: str | None = None,
+    role3: discord.Role | None = None,
+    emoji3: str | None = None,
+    role4: discord.Role | None = None,
+    emoji4: str | None = None,
+    role5: discord.Role | None = None,
+    emoji5: str | None = None,
+    role6: discord.Role | None = None,
+    emoji6: str | None = None,
+    role7: discord.Role | None = None,
+    emoji7: str | None = None,
+    role8: discord.Role | None = None,
+    emoji8: str | None = None,
+    role9: discord.Role | None = None,
+    emoji9: str | None = None,
+    role10: discord.Role | None = None,
+    emoji10: str | None = None,
+):
+
+    # Avoid application 3-second-timeout
+    await interaction.response.defer(ephemeral=True)
+
+    # User Permission Check
+    if not interaction.user.guild_permissions.manage_roles:
+        await interaction.followup.send(
+            "❌ You don't have permission to use this command.",
+            ephemeral=True,
+        )
+        return
+
+    # Bot Permission Check
+    me = interaction.guild.me
+    if not me.guild_permissions.manage_roles or not me.guild_permissions.add_reactions:
+        await interaction.followup.send(
+            "❌ I need 'Manage Roles' and 'Add Reactions' permissions to run this command.",
+            ephemeral=True,
+        )
+        return
+
+    role_emoji_pairs = build_role_emoji_pairs(
+        role1,
+        emoji1,
+        role2,
+        emoji2,
+        role3,
+        emoji3,
+        role4,
+        emoji4,
+        role5,
+        emoji5,
+        role6,
+        emoji6,
+        role7,
+        emoji7,
+        role8,
+        emoji8,
+        role9,
+        emoji9,
+        role10,
+        emoji10,
+    )
+
+    if not role_emoji_pairs:
+        await interaction.followup.send(
+            "❌ You must provide at least one valid role/emoji pair.",
+            ephemeral=True,
+        )
+        return
+
+    bot_top_role = interaction.guild.me.top_role
+    for role, _ in role_emoji_pairs:
+        if bot_top_role < role:
+            await interaction.followup.send(
+                f"❌ I cannot assign the role '{role.name}' because it's above my highest role.",
+                ephemeral=True,
+            )
+            return
+
+    # Fetch the existing message in the current channel
+    try:
+        message = await interaction.channel.fetch_message(int(message_id))
+    except discord.NotFound:
+        await interaction.followup.send(
+            "❌ Message not found in this channel.",
+            ephemeral=True,
+        )
+        return
+    except discord.Forbidden:
+        await interaction.followup.send(
+            "❌ I don't have permission to view that message.",
+            ephemeral=True,
+        )
+        return
+
+    # Build the new content
+    role_info_block = "\n\n" + "\n".join(
+        [f"{emoji}: `{role.name}`" for role, emoji in role_emoji_pairs]
+    )
+    full_message = channelmsg.replace("\\n", "\n") + role_info_block
+
+    # Edit the existing message
+    await message.edit(content=full_message)
+
+    # Clear old reactions
+    try:
+        await message.clear_reactions()
+    except discord.Forbidden:
+        await interaction.followup.send(
+            "❌ I couldn't clear the old reactions (missing permissions).",
+            ephemeral=True,
+        )
+        return
+
+    # Add new reactions
+    message_map = {}
+    for role, emoji in role_emoji_pairs:
+        try:
+            await message.add_reaction(emoji)
+            message_map[emoji] = role.id
+        except discord.HTTPException:
+            await interaction.followup.send(
+                f"❌ Failed to add emoji `{emoji}` for role `{role.name}`.",
+                ephemeral=True,
+            )
+            return
+
+    # Save updated mapping
+    reaction_role_messages[str(message.id)] = message_map
+    save_json_data(FILENAME_REACTION_ROLES, reaction_role_messages)
+
+    await interaction.followup.send(
+        f"✅ Reaction-role message `{message_id}` updated successfully.",
+        ephemeral=True,
+    )
+
 
 # ─────────── Reaction Logic ───────────
 async def handle_reaction(
@@ -182,34 +392,48 @@ async def handle_reaction(
         await member.remove_roles(role, reason="Reaction role removed.")
         await log_event(f"❌ **'{str(member)}'** removed the role **'{role.name}'**.")
 
+
 # ─────────── Events ───────────
 @bot.event
-async def on_ready():
-    await tree.sync(guild=server_guild)
+async def setup_hook():
     tree.add_command(mingo_group, guild=server_guild)
-    print(f"✅ Logged in as {bot.user} and commands are synced.")
+    await tree.sync(guild=server_guild)
+    print(
+        f"✅ Synced guild commands: {[c.name for c in await tree.fetch_commands(guild=server_guild)]}"
+    )
+
+
+@bot.event
+async def on_ready():
+    print(f"✅ Logged in as {bot.user}.")
+
 
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await handle_reaction(payload, ReactionType.ADD)
 
+
 @bot.event
 async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     await handle_reaction(payload, ReactionType.REMOVE)
+
 
 @bot.event
 async def on_member_join(member: discord.Member):
     await log_event(f"📥 **'{str(member)}'** joined the server.")
 
+
 @bot.event
 async def on_member_remove(member: discord.Member):
     await log_event(f"📤 **'{str(member)}'** left the server.")
 
+
 # ─────────── Load Extensions and Run ───────────
 async def main():
     async with bot:
-        await bot.load_extension("activities")
         await bot.start(DISCORD_BOT_TOKEN)
 
+
 import asyncio
+
 asyncio.run(main())
