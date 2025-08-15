@@ -120,7 +120,7 @@ async def create_reaction_message(
 
     # User Permission Check
     if not interaction.user.guild_permissions.manage_roles:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You don't have permission to use this command.",
             ephemeral=True,
         )
@@ -129,7 +129,7 @@ async def create_reaction_message(
     # Bot Permission Check
     me = interaction.guild.me
     if not me.guild_permissions.manage_roles or not me.guild_permissions.add_reactions:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I need 'Manage Roles' and 'Add Reactions' permissions to run this command.",
             ephemeral=True,
         )
@@ -168,7 +168,7 @@ async def create_reaction_message(
     bot_top_role = interaction.guild.me.top_role
     for role, _ in role_emoji_pairs:
         if bot_top_role < role:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ I cannot assign the role '{role.name}' because it's above my highest role.",
                 ephemeral=True,
             )
@@ -195,7 +195,7 @@ async def create_reaction_message(
     reaction_role_messages[str(message.id)] = message_map
     save_json_data(FILENAME_REACTION_ROLES, reaction_role_messages)
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         "✅ Message sent with role reactions.",
         ephemeral=True,
     )
@@ -236,7 +236,7 @@ async def edit_reaction_message(
 
     # User Permission Check
     if not interaction.user.guild_permissions.manage_roles:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You don't have permission to use this command.",
             ephemeral=True,
         )
@@ -245,7 +245,7 @@ async def edit_reaction_message(
     # Bot Permission Check
     me = interaction.guild.me
     if not me.guild_permissions.manage_roles or not me.guild_permissions.add_reactions:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I need 'Manage Roles' and 'Add Reactions' permissions to run this command.",
             ephemeral=True,
         )
@@ -284,7 +284,7 @@ async def edit_reaction_message(
     bot_top_role = interaction.guild.me.top_role
     for role, _ in role_emoji_pairs:
         if bot_top_role < role:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ I cannot assign the role '{role.name}' because it's above my highest role.",
                 ephemeral=True,
             )
@@ -294,13 +294,13 @@ async def edit_reaction_message(
     try:
         message = await interaction.channel.fetch_message(int(message_id))
     except discord.NotFound:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ Message not found in this channel.",
             ephemeral=True,
         )
         return
     except discord.Forbidden:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I don't have permission to view that message.",
             ephemeral=True,
         )
@@ -319,7 +319,7 @@ async def edit_reaction_message(
     try:
         await message.clear_reactions()
     except discord.Forbidden:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I couldn't clear the old reactions (missing permissions).",
             ephemeral=True,
         )
@@ -342,7 +342,7 @@ async def edit_reaction_message(
     reaction_role_messages[str(message.id)] = message_map
     save_json_data(FILENAME_REACTION_ROLES, reaction_role_messages)
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"✅ Reaction-role message `{message_id}` updated successfully.",
         ephemeral=True,
     )
