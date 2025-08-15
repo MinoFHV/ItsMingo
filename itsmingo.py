@@ -5,7 +5,6 @@
 import discord
 import os
 import time
-from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 from enum import Enum
@@ -28,8 +27,8 @@ intents.members = True
 intents.voice_states = True
 
 # ─────────── Bot Setup ───────────
-bot = commands.Bot(command_prefix="!", intents=intents)
-tree = bot.tree
+bot = discord.Client(intents=intents)
+tree = app_commands.CommandTree(bot)
 server_guild = discord.Object(id=GUILD_ID)
 
 # ─────────── Data ───────────
@@ -114,10 +113,6 @@ async def create_reaction_message(
     emoji9: str | None = None,
     role10: discord.Role | None = None,
     emoji10: str | None = None,
-    role11: discord.Role | None = None,
-    emoji11: str | None = None,
-    role12: discord.Role | None = None,
-    emoji12: str | None = None,
 ):
 
     # User Permission Check
@@ -158,10 +153,6 @@ async def create_reaction_message(
         emoji9,
         role10,
         emoji10,
-        role11,
-        emoji11,
-        role12,
-        emoji12,
     )
 
     if not role_emoji_pairs:
@@ -235,10 +226,6 @@ async def edit_reaction_message(
     emoji9: str | None = None,
     role10: discord.Role | None = None,
     emoji10: str | None = None,
-    role11: discord.Role | None = None,
-    emoji11: str | None = None,
-    role12: discord.Role | None = None,
-    emoji12: str | None = None,
 ):
 
     # User Permission Check
@@ -278,10 +265,6 @@ async def edit_reaction_message(
         emoji9,
         role10,
         emoji10,
-        role11,
-        emoji11,
-        role12,
-        emoji12,
     )
 
     if not role_emoji_pairs:
@@ -381,16 +364,17 @@ async def handle_reaction(
 
 # ─────────── Events ───────────
 @bot.event
+async def setup_hook():
+    tree.add_command(mingo_group, guild=server_guild)
+    await tree.sync(guild=server_guild)
+    print(
+        f"✅ Synced guild commands: {[c.name for c in await tree.fetch_commands(guild=server_guild)]}"
+    )
+
+
+@bot.event
 async def on_ready():
-    if not getattr(bot, "already_synced", False):
-        tree.add_command(mingo_group, guild=server_guild)
-        await tree.sync(guild=server_guild)
-        bot.already_synced = True
-        print(
-            f"✅ Logged in as {bot.user} and commands are synced for guild {GUILD_ID}."
-        )
-    else:
-        print(f"✅ Logged in as {bot.user} (commands already synced).")
+    print(f"✅ Logged in as {bot.user}.")
 
 
 @bot.event
@@ -416,7 +400,6 @@ async def on_member_remove(member: discord.Member):
 # ─────────── Load Extensions and Run ───────────
 async def main():
     async with bot:
-        await bot.load_extension("activities")
         await bot.start(DISCORD_BOT_TOKEN)
 
 
