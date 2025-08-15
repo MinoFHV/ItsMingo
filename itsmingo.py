@@ -205,7 +205,6 @@ async def create_reaction_message(
 async def edit_reaction_message(
     interaction: discord.Interaction,
     message_id: str,
-    channel: discord.TextChannel,
     role1: discord.Role,
     emoji1: str,
     role2: discord.Role | None = None,
@@ -274,7 +273,7 @@ async def edit_reaction_message(
         return
 
     try:
-        message = await channel.fetch_message(int(message_id))
+        message = await interaction.channel.fetch_message(int(message_id))
     except discord.NotFound:
         await interaction.response.send_message(
             "❌ Message not found. Make sure the ID and channel are correct.",
