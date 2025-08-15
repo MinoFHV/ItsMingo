@@ -382,8 +382,8 @@ async def handle_reaction(
 # ─────────── Events ───────────
 @bot.event
 async def on_ready():
-    tree.add_command(mingo_group, guild=server_guild)
     await tree.sync(guild=server_guild)
+    tree.add_command(mingo_group, guild=server_guild)
     print(f"✅ Logged in as {bot.user} and commands are synced.")
 
 
