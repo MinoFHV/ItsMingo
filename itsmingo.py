@@ -186,6 +186,11 @@ async def create_reaction_message(
             await message.add_reaction(emoji)
             message_map[emoji] = role.id
         except discord.HTTPException:
+            if message:
+                try:
+                    await message.delete()
+                except discord.HTTPException:
+                    pass
             await interaction.followup.send(
                 f"❌ Failed to add emoji `{emoji}` for role `{role.name}`.",
                 ephemeral=True,
