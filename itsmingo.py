@@ -115,6 +115,9 @@ async def create_reaction_message(
     emoji10: str | None = None,
 ):
 
+    # Avoid application 3-second-timeout
+    await interaction.response.defer(ephemeral=True)
+
     # User Permission Check
     if not interaction.user.guild_permissions.manage_roles:
         await interaction.response.send_message(
@@ -200,11 +203,12 @@ async def create_reaction_message(
 
 @mingo_group.command(
     name="edit_reaction",
-    description="Edit an existing reaction-role message by message ID",
+    description="Edit an existing reaction-role message in this channel",
 )
 async def edit_reaction_message(
     interaction: discord.Interaction,
     message_id: str,
+    channelmsg: str,
     role1: discord.Role,
     emoji1: str,
     role2: discord.Role | None = None,
@@ -227,10 +231,14 @@ async def edit_reaction_message(
     emoji10: str | None = None,
 ):
 
+    # Avoid application 3-second-timeout
+    await interaction.response.defer(ephemeral=True)
+
     # User Permission Check
     if not interaction.user.guild_permissions.manage_roles:
         await interaction.response.send_message(
-            "❌ You don't have permission to use this command.", ephemeral=True
+            "❌ You don't have permission to use this command.",
+            ephemeral=True,
         )
         return
 
@@ -267,30 +275,47 @@ async def edit_reaction_message(
     )
 
     if not role_emoji_pairs:
-        await interaction.response.send_message(
-            "❌ You must provide at least one valid role/emoji pair.", ephemeral=True
+        await interaction.followup.send(
+            "❌ You must provide at least one valid role/emoji pair.",
+            ephemeral=True,
         )
         return
 
+    bot_top_role = interaction.guild.me.top_role
+    for role, _ in role_emoji_pairs:
+        if bot_top_role < role:
+            await interaction.response.send_message(
+                f"❌ I cannot assign the role '{role.name}' because it's above my highest role.",
+                ephemeral=True,
+            )
+            return
+
+    # Fetch the existing message in the current channel
     try:
         message = await interaction.channel.fetch_message(int(message_id))
     except discord.NotFound:
         await interaction.response.send_message(
-            "❌ Message not found. Make sure the ID and channel are correct.",
+            "❌ Message not found in this channel.",
             ephemeral=True,
         )
         return
     except discord.Forbidden:
         await interaction.response.send_message(
-            "❌ I don't have permission to view that channel/message.", ephemeral=True
+            "❌ I don't have permission to view that message.",
+            ephemeral=True,
         )
         return
 
+    # Build the new content
     role_info_block = "\n\n" + "\n".join(
-        f"{emoji}: `{role.name}`" for role, emoji in role_emoji_pairs
+        [f"{emoji}: `{role.name}`" for role, emoji in role_emoji_pairs]
     )
-    await message.edit(content=role_info_block)
+    full_message = channelmsg.replace("\\n", "\n") + role_info_block
 
+    # Edit the existing message
+    await message.edit(content=full_message)
+
+    # Clear old reactions
     try:
         await message.clear_reactions()
     except discord.Forbidden:
@@ -300,18 +325,20 @@ async def edit_reaction_message(
         )
         return
 
+    # Add new reactions
     message_map = {}
     for role, emoji in role_emoji_pairs:
         try:
             await message.add_reaction(emoji)
             message_map[emoji] = role.id
         except discord.HTTPException:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ Failed to add emoji `{emoji}` for role `{role.name}`.",
                 ephemeral=True,
             )
             return
 
+    # Save updated mapping
     reaction_role_messages[str(message.id)] = message_map
     save_json_data(FILENAME_REACTION_ROLES, reaction_role_messages)
 
