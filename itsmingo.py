@@ -6,6 +6,7 @@ import discord
 import os
 import time
 from discord import app_commands
+from discord.ext import commands
 from dotenv import load_dotenv
 from enum import Enum
 from reaction_role_manager import load_json_data, save_json_data
@@ -27,8 +28,8 @@ intents.members = True
 intents.voice_states = True
 
 # ─────────── Bot Setup ───────────
-bot = discord.Client(intents=intents)
-tree = app_commands.CommandTree(bot)
+bot = commands.Bot(intents=intents, command_prefix="!")
+tree = bot.tree
 server_guild = discord.Object(id=GUILD_ID)
 
 # ─────────── Data ───────────
@@ -396,6 +397,7 @@ async def handle_reaction(
 # ─────────── Events ───────────
 @bot.event
 async def setup_hook():
+    await bot.load_extension("activities")
     tree.add_command(mingo_group, guild=server_guild)
     await tree.sync(guild=server_guild)
     print(
